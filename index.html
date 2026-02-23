@@ -1,442 +1,497 @@
-<!DOCTYPE html>  
-<html lang="zh-CN">  
-<head>  
-    <meta charset="UTF-8">  
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">  
-    <title>GeoRelic AI - 古今地图空间校准平台</title>  
-    <style>  
-        :root {  
-            --bg-color: #0f172a;  
-            --card-bg: #1e293b;  
-            --primary: #3b82f6;  
-            --primary-hover: #2563eb;  
-            --text-main: #f8fafc;  
-            --text-sub: #94a3b8;  
-            --border: #334155;  
-            --red-dot: #ef4444;  
-            --success: #10b981;  
+<!DOCTYPE html>    
+<html lang="zh-CN">    
+<head>    
+    <meta charset="UTF-8">    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">    
+    <title>GeoRelic AI - 古今地图空间校准平台</title>    
+    <style>    
+        :root {    
+            --bg-color: #0b1120;    
+            --card-bg: rgba(30, 41, 59, 0.85);    
+            --primary: #3b82f6;    
+            --primary-hover: #2563eb;    
+            --text-main: #ffffff;    
+            --text-sub: #94a3b8;    
+            --border: #334155;    
+            --red-dot: #e31a1a;    
+            --success: #10b981;    
+        }    
+    
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }    
+        body { background-color: var(--bg-color); color: var(--text-main); line-height: 1.6; overflow-x: hidden; min-height: 100vh; }    
+          
+        /* === 背景图与粒子特效 === */  
+        #main-bg { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-image: url('bg.png'); background-size: cover; background-position: center; opacity: 0.35; z-index: -2; }  
+        #particles-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: -1; overflow: hidden; }  
+        .particle { position: absolute; background: #3b82f6; border-radius: 50%; box-shadow: 0 0 10px #3b82f6, 0 0 20px #3b82f6; animation: floatUp linear infinite; }  
+        @keyframes floatUp {  
+            0% { transform: translateY(0) scale(1); opacity: 0; }  
+            10% { opacity: 0.8; }  
+            90% { opacity: 0.8; }  
+            100% { transform: translateY(-200px) scale(0.5); opacity: 0; }  
         }  
   
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }  
-        body { background-color: var(--bg-color); color: var(--text-main); line-height: 1.6; overflow-x: hidden; }  
+        /* 导航栏 */    
+        header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 5%; background: rgba(11, 17, 32, 0.7); border-bottom: 1px solid rgba(51, 65, 85, 0.5); position: sticky; top: 0; z-index: 100; backdrop-filter: blur(12px); }    
+        .logo { font-size: 1.5rem; font-weight: bold; color: var(--primary); cursor: pointer; text-shadow: 0 0 15px rgba(59,130,246,0.5); }    
+        .logo span { color: var(--text-main); }    
+        .nav-links { display: flex; gap: 1.5rem; align-items: center; }    
+        .nav-link { color: var(--text-main); text-decoration: none; cursor: pointer; transition: color 0.3s; }    
+        .nav-link:hover { color: var(--primary); }    
+        .badge { background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8rem; margin-left: 5px; box-shadow: 0 0 10px var(--primary); }    
+    
+        /* 页面容器 */    
+        .page { display: none; padding: 2rem 5%; min-height: calc(100vh - 70px); animation: fadeIn 0.4s ease; position: relative; z-index: 10; }    
+        .page.active { display: block; }    
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }    
+    
+        /* 通用组件 */    
+        .btn { background: var(--primary); color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 8px; font-size: 1rem; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3); }    
+        .btn:hover { background: var(--primary-hover); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5); }    
+        .btn:disabled { background: var(--border); color: var(--text-sub); cursor: not-allowed; transform: none; box-shadow: none; }    
+        .btn-outline { background: rgba(30,41,59,0.5); border: 1px solid var(--border); color: var(--text-main); box-shadow: none; }    
+        .btn-outline:hover { background: var(--card-bg); border-color: var(--primary); transform: translateY(-2px); }    
+        .back-btn { margin-bottom: 1.5rem; display: inline-block; cursor: pointer; color: var(--text-sub); transition: color 0.3s; }    
+        .back-btn:hover { color: var(--text-main); }    
+    
+        /* 首页 Hero */    
+        .hero { text-align: center; padding: 5rem 0 3rem; text-shadow: 0 2px 10px rgba(0,0,0,0.8); }    
+        .hero h1 { font-size: 3.5rem; margin-bottom: 1rem; letter-spacing: -1px; background: linear-gradient(90deg, #cbd5e1, #93c5fd); -webkit-background-clip: text; -webkit-text-fill-color: transparent(50%); }    
+        .hero p { font-size: 1.2rem; color: #cbd5e1; max-width: 600px; margin: 0 auto 2rem; }    
+    
+        /* 首页案例横向滚动 */    
+        .case-section h2 { margin-bottom: 1rem; font-size: 1.5rem; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }    
+        .case-scroll { display: flex; gap: 1.5rem; overflow-x: auto; padding-bottom: 1rem; scrollbar-width: thin; scrollbar-color: var(--primary) transparent; }    
+        .case-card { flex: 0 0 300px; background: var(--card-bg); border-radius: 12px; overflow: hidden; border: 1px solid var(--border); cursor: pointer; transition: all 0.3s; backdrop-filter: blur(8px); }    
+        .case-card:hover { transform: translateY(-8px); border-color: var(--primary); box-shadow: 0 10px 25px rgba(0,0,0,0.5); }    
+        .case-img { height: 160px; background-size: cover; background-position: center; position: relative; }    
+        .case-info { padding: 1rem; }    
+        .case-info h3 { font-size: 1.1rem; margin-bottom: 0.5rem; }    
+    
+        /* 上传页 */    
+        .upload-container { display: flex; gap: 2rem; margin-bottom: 2rem; }    
+        .upload-box { flex: 1; background: rgba(30,41,59,0.6); border: 2px dashed var(--border); border-radius: 12px; height: 300px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; position: relative; transition: all 0.3s; overflow: hidden; background-size: cover; background-position: center; backdrop-filter: blur(5px); }    
+        .upload-box:hover { border-color: var(--primary); background-color: rgba(59, 130, 246, 0.1); }    
+        .upload-box.has-file .upload-text { display: none; }    
+        .upload-input { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }    
+        .upload-text { text-align: center; color: var(--text-sub); pointer-events: none; }    
+            
+        /* 进度条 */    
+        .progress-section { display: none; margin-top: 2rem; background: var(--card-bg); padding: 2rem; border-radius: 12px; text-align: center; backdrop-filter: blur(10px); }    
+        .progress-bar-bg { width: 100%; height: 10px; background: var(--border); border-radius: 5px; margin: 1rem 0; overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,0.5); }    
+        .progress-bar-fill { height: 100%; width: 0%; background: var(--primary); transition: width 0.3s ease; box-shadow: 0 0 10px var(--primary); }    
+        .progress-status { color: var(--primary); font-weight: bold; }    
+    
+        /* ================= 结果详情页图框样式更新 ================= */    
+        .result-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-bottom: 2rem; align-items: start; }    
+        .result-panel { background: var(--card-bg); border-radius: 12px; padding: 1rem; border: 1px solid var(--border); backdrop-filter: blur(10px); }    
+        .result-panel h3 { text-align: center; margin-bottom: 1rem; font-size: 1rem; color: var(--text-sub); }    
           
-        /* 导航栏 */  
-        header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 5%; background: rgba(15, 23, 42, 0.9); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; backdrop-filter: blur(10px); }  
-        .logo { font-size: 1.5rem; font-weight: bold; color: var(--primary); cursor: pointer; }  
-        .logo span { color: var(--text-main); }  
-        .nav-links { display: flex; gap: 1.5rem; align-items: center; }  
-        .nav-link { color: var(--text-main); text-decoration: none; cursor: pointer; transition: color 0.3s; }  
-        .nav-link:hover { color: var(--primary); }  
-        .badge { background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8rem; margin-left: 5px; }  
+        /* 取消固定高度，图框高度将自适应内部真实的 img 标签 */  
+        .image-preview { width: 100%; height: auto; background: #000; border-radius: 8px; position: relative; overflow: hidden; display: flex; justify-content: center; }    
+        /* 强制图片宽度 100%，高度自适应按比例缩放 */  
+        .image-preview img { width: 100%; height: auto; display: block; object-fit: contain; }  
   
-        /* 页面容器 */  
-        .page { display: none; padding: 2rem 5%; min-height: calc(100vh - 70px); animation: fadeIn 0.4s ease; }  
-        .page.active { display: block; }  
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }  
+        /* 闪烁的红点 */  
+        .fake-red-dot { width: 24px; height: 24px; background: var(--red-dot); border-radius: 50%; position: absolute; transform: translate(-50%, -50%); box-shadow: 0 0 15px var(--red-dot); animation: pulse 1.2s infinite; z-index: 5; }    
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(228, 21, 21, 0.8); } 70% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }    
+            
+        /* 技术指标区 */    
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem; }    
+        .stat-card { background: var(--card-bg); padding: 1.5rem; border-radius: 12px; text-align: center; border: 1px solid var(--border); backdrop-filter: blur(10px); }    
+        .stat-value { font-size: 1.5rem; font-weight: bold; color: var(--primary); margin-top: 0.5rem; text-shadow: 0 0 10px rgba(59,130,246,0.3); }    
+            
+        .action-bar { display: flex; justify-content: center; gap: 1rem; }    
+    
+        /* 历史记录页 */    
+        .history-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }    
+        .history-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 1rem; backdrop-filter: blur(8px); transition: transform 0.3s; }    
+        .history-card:hover { transform: translateY(-5px); border-color: var(--primary); }  
+        .history-thumb { height: 150px; background-size: cover; background-position: center; border-radius: 8px; margin-bottom: 1rem; }    
+        .history-info { display: flex; justify-content: space-between; align-items: center; color: var(--text-sub); font-size: 0.9rem; }    
+        .history-actions { margin-top: 1rem; display: flex; justify-content: space-between; }    
+        .btn-icon { background: transparent; border: none; color: var(--text-sub); cursor: pointer; font-size: 1.2rem; transition: color 0.3s; }    
+        .btn-icon:hover { color: var(--red-dot); }    
+    
+    </style>    
+</head>    
+<body>    
+    
+    <!-- 底层背景与特效 -->  
+    <div id="main-bg"></div>  
+    <div id="particles-container"></div>  
   
-        /* 通用组件 */  
-        .btn { background: var(--primary); color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 8px; font-size: 1rem; cursor: pointer; transition: all 0.3s; }  
-        .btn:hover { background: var(--primary-hover); }  
-        .btn:disabled { background: var(--border); color: var(--text-sub); cursor: not-allowed; }  
-        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-main); }  
-        .btn-outline:hover { background: var(--card-bg); border-color: var(--primary); }  
-        .back-btn { margin-bottom: 1.5rem; display: inline-block; cursor: pointer; color: var(--text-sub); }  
-        .back-btn:hover { color: var(--text-main); }  
-  
-        /* 首页 Hero */  
-        .hero { text-align: center; padding: 5rem 0 3rem; }  
-        .hero h1 { font-size: 3.5rem; margin-bottom: 1rem; letter-spacing: -1px; }  
-        .hero p { font-size: 1.2rem; color: var(--text-sub); max-width: 600px; margin: 0 auto 2rem; }  
-  
-        /* 首页案例横向滚动 */  
-        .case-section h2 { margin-bottom: 1rem; font-size: 1.5rem; }  
-        .case-scroll { display: flex; gap: 1.5rem; overflow-x: auto; padding-bottom: 1rem; scrollbar-width: thin; scrollbar-color: var(--primary) var(--card-bg); }  
-        .case-card { flex: 0 0 300px; background: var(--card-bg); border-radius: 12px; overflow: hidden; border: 1px solid var(--border); cursor: pointer; transition: transform 0.3s; }  
-        .case-card:hover { transform: translateY(-5px); border-color: var(--primary); }  
-        .case-img { height: 160px; background: #333; position: relative; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; color: #777;}  
-        .case-info { padding: 1rem; }  
-        .case-info h3 { font-size: 1.1rem; margin-bottom: 0.5rem; }  
-  
-        /* 上传页 */  
-        .upload-container { display: flex; gap: 2rem; margin-bottom: 2rem; }  
-        .upload-box { flex: 1; background: var(--card-bg); border: 2px dashed var(--border); border-radius: 12px; height: 300px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; position: relative; transition: all 0.3s; overflow: hidden; background-size: cover; background-position: center; }  
-        .upload-box:hover { border-color: var(--primary); background-color: rgba(59, 130, 246, 0.05); }  
-        .upload-box.has-file .upload-text { display: none; }  
-        .upload-input { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }  
-        .upload-text { text-align: center; color: var(--text-sub); pointer-events: none; }  
-        .upload-text i { font-size: 3rem; margin-bottom: 1rem; display: block; }  
-          
-        /* 进度条 */  
-        .progress-section { display: none; margin-top: 2rem; background: var(--card-bg); padding: 2rem; border-radius: 12px; text-align: center; }  
-        .progress-bar-bg { width: 100%; height: 10px; background: var(--border); border-radius: 5px; margin: 1rem 0; overflow: hidden; }  
-        .progress-bar-fill { height: 100%; width: 0%; background: var(--primary); transition: width 0.3s ease; }  
-        .progress-status { color: var(--primary); font-weight: bold; }  
-  
-        /* 结果详情页 */  
-        .result-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-bottom: 2rem; }  
-        .result-panel { background: var(--card-bg); border-radius: 12px; padding: 1rem; border: 1px solid var(--border); }  
-        .result-panel h3 { text-align: center; margin-bottom: 1rem; font-size: 1rem; color: var(--text-sub); }  
-        .image-preview { width: 100%; height: 400px; background: #000; border-radius: 8px; position: relative; background-size: contain; background-repeat: no-repeat; background-position: center; }  
-        .fake-red-dot { width: 16px; height: 16px; background: var(--red-dot); border-radius: 50%; position: absolute; box-shadow: 0 0 10px var(--red-dot); animation: pulse 1.5s infinite; }  
-        @keyframes pulse { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }  
-          
-        /* 技术指标区 */  
-        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem; }  
-        .stat-card { background: var(--card-bg); padding: 1.5rem; border-radius: 12px; text-align: center; border: 1px solid var(--border); }  
-        .stat-value { font-size: 1.5rem; font-weight: bold; color: var(--primary); margin-top: 0.5rem; }  
-          
-        .action-bar { display: flex; justify-content: center; gap: 1rem; }  
-  
-        /* 历史记录页 */  
-        .history-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }  
-        .history-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 1rem; }  
-        .history-thumb { height: 150px; background: #222; border-radius: 8px; margin-bottom: 1rem; }  
-        .history-info { display: flex; justify-content: space-between; align-items: center; color: var(--text-sub); font-size: 0.9rem; }  
-        .history-actions { margin-top: 1rem; display: flex; justify-content: space-between; }  
-        .btn-icon { background: transparent; border: none; color: var(--text-sub); cursor: pointer; font-size: 1.2rem; }  
-        .btn-icon:hover { color: var(--red-dot); }  
-  
-    </style>  
-</head>  
-<body>  
-  
-    <!-- 顶层导航 -->  
-    <header>  
-        <div class="logo" onclick="navTo('home')">GeoRelic <span>AI</span></div>  
-        <div class="nav-links">  
-            <span class="nav-link">Hi, DemoUser</span>  
-            <a class="nav-link" onclick="navTo('history')">历史记录 <span class="badge">3</span></a>  
-        </div>  
-    </header>  
-  
-    <!-- ================= 首页 ================= -->  
-    <main id="page-home" class="page active">  
-        <div class="hero">  
-            <h1>Project History Onto Reality</h1>  
-            <p>Automatically align distorted ancient maps with modern satellite imagery and accurately reproject marked locations.</p>  
-            <button class="btn" onclick="navTo('upload')" style="font-size: 1.2rem; padding: 1rem 2.5rem;">Get Started!</button>  
-        </div>  
-  
-        <div class="case-section">  
-            <h2>城市案例 (City Cases)</h2>  
-            <div class="case-scroll">  
-                <div class="case-card" onclick="showCase('重庆市中心城区 (1907)', '2.1m', '98%')">  
-                    <div class="case-img" style="background: linear-gradient(45deg, #4b3e2b, #2c3e50);">示例缩略图 - 重庆</div>  
-                    <div class="case-info">  
-                        <h3>重庆市中心城区 (1907)</h3>  
-                        <p style="color: var(--text-sub); font-size: 0.9rem;">坐标系: WGS84</p>  
-                    </div>  
-                </div>  
-                <div class="case-card" onclick="showCase('广州市中心城区 (1858)', '4.5m', '92%')">  
-                    <div class="case-img" style="background: linear-gradient(45deg, #3e4b2b, #2c3e50);">示例缩略图 - 广州</div>  
-                    <div class="case-info">  
-                        <h3>广州市中心城区 (1858)</h3>  
-                        <p style="color: var(--text-sub); font-size: 0.9rem;">坐标系: WGS84</p>  
-                    </div>  
-                </div>  
-                <div class="case-card" onclick="showCase('上海市中心城区 (1884)', '1.8m', '99%')">  
-                    <div class="case-img" style="background: linear-gradient(45deg, #2b3e4b, #2c3e50);">示例缩略图 - 上海</div>  
-                    <div class="case-info">  
-                        <h3>上海市中心城区 (1884)</h3>  
-                        <p style="color: var(--text-sub); font-size: 0.9rem;">坐标系: WGS84</p>  
-                    </div>  
-                </div>  
-            </div>  
-        </div>  
-    </main>  
-  
-    <!-- ================= 上传与校准页 ================= -->  
-    <main id="page-upload" class="page">  
-        <div class="back-btn" onclick="navTo('home')">< 返回主页</div>  
-        <h2 style="margin-bottom: 2rem;">空间配准与投影 (Upload & Calibrate)</h2>  
-          
-        <div class="upload-container">  
-            <!-- 古地图上传区 -->  
-            <div class="upload-box" id="box-ancient">  
-                <input type="file" class="upload-input" accept="image/*" onchange="handleUpload(this, 'ancient')">  
-                <div class="upload-text">  
-                    <h3>Upload ancient map</h3>  
-                    <p>请上传带红点的历史地图 (JPG/PNG)</p>  
-                </div>  
-            </div>  
+    <!-- 顶层导航 -->    
+    <header>    
+        <div class="logo" onclick="navTo('home')">GeoRelic <span>AI</span></div>    
+        <div class="nav-links">    
+            <span class="nav-link">Hi, DemoUser</span>    
+            <a class="nav-link" onclick="navTo('history')">历史记录 <span class="badge">3</span></a>    
+        </div>    
+    </header>    
+    
+    <!-- ================= 首页 ================= -->    
+    <main id="page-home" class="page active">    
+        <div class="hero">    
+            <h1>Project History Onto Reality</h1>    
+            <p>Automatically align distorted ancient maps with modern satellite imagery and accurately reproject marked locations.</p>    
+            <button class="btn" onclick="navTo('upload')" style="font-size: 1.2rem; padding: 1rem 2.5rem;">Get Started</button>    
+        </div>    
+    
+        <div class="case-section">    
+            <h2>城市案例 (City Cases)</h2>    
+            <div class="case-scroll">    
+                <!-- 通过传参预埋：名称、误差、置信度、古图、现代图、结果图、古图红点坐标(%)、结果图红点坐标(%) -->  
+                <div class="case-card" onclick="showCase('重庆市中心城区 (1907)', '2.1m', '98%', 'cq_1.jpg', 'cq_2.jpg', 'cq_3.jpg', {x:44, y:54}, {x:50, y:76})">    
+                    <div class="case-img" style="background-image: url('cq_3.jpg');"></div>    
+                    <div class="case-info">    
+                        <h3>重庆市中心城区 (1907)</h3>    
+                        <p style="color: var(--text-sub); font-size: 0.9rem;">坐标系: WGS84</p>    
+                    </div>    
+                </div>    
+                <div class="case-card" onclick="showCase('广州市中心城区 (1858)', '4.5m', '92%', 'gz_1.jpg', 'gz_2.jpg', 'gz_3.jpg', {x:47, y:53}, {x:59, y:46})">    
+                    <div class="case-img" style="background-image: url('gz_3.jpg');"></div>    
+                    <div class="case-info">    
+                        <h3>广州市中心城区 (1858)</h3>    
+                        <p style="color: var(--text-sub); font-size: 0.9rem;">坐标系: WGS84</p>    
+                    </div>    
+                </div>    
+                <div class="case-card" onclick="showCase('上海市中心城区 (1884)', '1.8m', '99%', 'sh_1.jpg', 'sh_2.jpg', 'sh_3.jpg', {x:65, y:63}, {x:67, y:55})">    
+                    <div class="case-img" style="background-image: url('sh_3.jpg');"></div>    
+                    <div class="case-info">    
+                        <h3>上海市中心城区 (1884)</h3>    
+                        <p style="color: var(--text-sub); font-size: 0.9rem;">坐标系: WGS84</p>    
+                    </div>    
+                </div>    
+            </div>    
+        </div>    
+    </main>    
+    
+    <!-- ================= 上传与校准页 ================= -->    
+    <main id="page-upload" class="page">    
+        <div class="back-btn" onclick="navTo('home')">< 返回主页</div>    
+        <h2 style="margin-bottom: 2rem;">空间配准与投影 (Upload & Calibrate)</h2>    
+            
+        <div class="upload-container">    
+            <!-- 古地图上传区 -->    
+            <div class="upload-box" id="box-ancient">    
+                <input type="file" class="upload-input" accept="image/*" onchange="handleUpload(this, 'ancient')">    
+                <div class="upload-text">    
+                    <h3 style="margin-bottom: 10px;">Upload ancient map</h3>    
+                    <p>请上传带红点的历史地图 (JPG/PNG)</p>    
+                </div>    
+            </div>    
+                
+            <!-- 现代地图上传区 -->    
+            <div class="upload-box" id="box-modern">    
+                <input type="file" class="upload-input" accept="image/*" onchange="handleUpload(this, 'modern')">    
+                <div class="upload-text">    
+                    <h3 style="margin-bottom: 10px;">Upload modern satellite map</h3>    
+                    <p>请上传对应的现代卫星图 (JPG/PNG)</p>    
+                </div>    
+            </div>    
+        </div>    
+    
+        <div style="text-align: center;">    
+            <button class="btn" id="btn-start" disabled onclick="startCalibration()" style="width: 250px;">开始空间校准 (Start)</button>    
+        </div>    
+    
+        <!-- 加载动画区 -->    
+        <div class="progress-section" id="progress-area">    
+            <h3 id="progress-text">Initializing AI Model...</h3>    
+            <div class="progress-bar-bg">    
+                <div class="progress-bar-fill" id="progress-fill"></div>    
+            </div>    
+            <p class="progress-status" id="progress-status">0%</p>    
+        </div>    
+    </main>    
+    
+    <!-- ================= 项目详情页 (结果页) ================= -->    
+    <main id="page-result" class="page">    
+        <div class="back-btn" onclick="navTo('home')">< 返回主页</div>    
+        <h2 style="margin-bottom: 2rem;" id="result-title">配准结果 (Calibration Result)</h2>    
+    
+        <!-- 三栏影像对比 (已更换为 img 结构) -->    
+        <div class="result-grid">    
+            <div class="result-panel">    
+                <h3>Ancient Map (原始历史地图)</h3>    
+                <div class="image-preview">    
+                    <img id="img-ancient" src="" alt="Ancient Map">  
+                    <div class="fake-red-dot" id="dot-ancient"></div>    
+                </div>    
+            </div>    
+            <div class="result-panel">    
+                <h3>Modern Map (原卫星图)</h3>    
+                <div class="image-preview">    
+                    <img id="img-modern" src="" alt="Modern Map">  
+                </div>    
+            </div>    
+            <div class="result-panel">    
+                <h3 style="color: var(--success);">Result (红点真实投影)</h3>    
+                <div class="image-preview">    
+                    <img id="img-result" src="" alt="Result Map">  
+                    <div class="fake-red-dot" id="dot-result"></div>    
+                </div>    
+            </div>    
+        </div>    
+    
+        <!-- 技术参数 -->    
+        <h3 style="margin-bottom: 1rem;">技术指标 (Technical Details)</h3>    
+        <div class="stats-grid">    
+            <div class="stat-card">    
+                <p>Transformation Model</p>    
+                <div class="stat-value">TPS (非线性)</div>    
+            </div>    
+            <div class="stat-card">    
+                <p>Matched Keypoints</p>    
+                <div class="stat-value" id="stat-kp">142</div>    
+            </div>    
+            <div class="stat-card">    
+                <p>RMS Error</p>    
+                <div class="stat-value" id="stat-rmse">2.4m</div>    
+            </div>    
+            <div class="stat-card">    
+                <p>Confidence Score</p>    
+                <div class="stat-value" id="stat-conf">98.5%</div>    
+            </div>    
+        </div>    
+    
+        <!-- 操作按钮 -->    
+        <div class="action-bar">    
+            <button class="btn" onclick="downloadSimulation('Image')">⬇ Download Result Image (PNG)</button>    
+            <button class="btn btn-outline" onclick="downloadSimulation('Coordinates')">⬇ Download Coordinates (JSON)</button>    
+        </div>    
+    </main>    
+    
+    <!-- ================= 历史记录页 ================= -->    
+    <main id="page-history" class="page">    
+        <div class="back-btn" onclick="navTo('home')">< 返回主页</div>    
+        <h2 style="margin-bottom: 2rem;">项目历史记录 (History)</h2>    
+    
+        <div class="history-grid">    
+            <!-- 卡片1 -->    
+            <div class="history-card">    
+                <div class="history-thumb" style="background-image: url('cq_3.jpg');"></div>    
+                <div class="history-info">    
+                    <span>重庆市中心城区配准</span>    
+                    <span>2025-10-24</span>    
+                </div>    
+                <p style="color: var(--text-sub); font-size: 0.8rem; margin-top: 5px;">坐标系: WGS84</p>    
+                <div class="history-actions">    
+                    <button class="btn btn-outline" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;" onclick="showCase('重庆市中心城区 (1907)', '2.1m', '98%', 'cq_1.jpg', 'cq_2.jpg', 'cq_3.jpg', {x:44, y:54}, {x:50, y:76})">查看详情</button>    
+                    <div>    
+                        <button class="btn-icon" style="color: var(--red-dot);">♥</button>    
+                        <button class="btn-icon" onclick="alert('项目已删除')">🗑</button>    
+                    </div>    
+                </div>    
+            </div>    
+            <!-- 卡片2 -->    
+            <div class="history-card">    
+                <div class="history-thumb" style="background-image: url('gz_3.jpg');"></div>    
+                <div class="history-info">    
+                    <span>广州市中心城区配准</span>    
+                    <span>2025-10-20</span>    
+                </div>    
+                <p style="color: var(--text-sub); font-size: 0.8rem; margin-top: 5px;">坐标系: WGS84</p>    
+                <div class="history-actions">    
+                    <button class="btn btn-outline" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;" onclick="showCase('广州市中心城区 (1858)', '4.5m', '92%', 'gz_1.jpg', 'gz_2.jpg', 'gz_3.jpg', {x:47, y:53}, {x:59, y:46})">查看详情</button>    
+                    <div>    
+                        <button class="btn-icon">♡</button>    
+                        <button class="btn-icon" onclick="alert('项目已删除')">🗑</button>    
+                    </div>    
+                </div>    
+            </div>    
+            <!-- 卡片3 -->    
+            <div class="history-card">    
+                <div class="history-thumb" style="background-image: url('sh_3.jpg');"></div>    
+                <div class="history-info">    
+                    <span>上海市中心城区配准</span>    
+                    <span>2025-10-15</span>    
+                </div>    
+                <p style="color: var(--text-sub); font-size: 0.8rem; margin-top: 5px;">坐标系: WGS84</p>    
+                <div class="history-actions">    
+                    <button class="btn btn-outline" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;" onclick="showCase('上海市中心城区 (1884)', '1.8m', '99%', 'sh_1.jpg', 'sh_2.jpg', 'sh_3.jpg', {x:65, y:63}, {x:67, y:55})">查看详情</button>    
+                    <div>    
+                        <button class="btn-icon">♡</button>    
+                        <button class="btn-icon" onclick="alert('项目已删除')">🗑</button>    
+                    </div>    
+                </div>    
+            </div>    
+        </div>    
+    </main>    
+    
+    <!-- ================= JavaScript 逻辑 ================= -->    
+    <script>    
+        // ------------------ 数据流粒子特效系统 ------------------  
+        function initParticles() {  
+            const container = document.getElementById('particles-container');  
+            const particleCount = 60;   
               
-            <!-- 现代地图上传区 -->  
-            <div class="upload-box" id="box-modern">  
-                <input type="file" class="upload-input" accept="image/*" onchange="handleUpload(this, 'modern')">  
-                <div class="upload-text">  
-                    <h3>Upload modern satellite map</h3>  
-                    <p>请上传对应的现代卫星图 (JPG/PNG)</p>  
-                </div>  
-            </div>  
-        </div>  
-  
-        <div style="text-align: center;">  
-            <button class="btn" id="btn-start" disabled onclick="startCalibration()" style="width: 250px;">开始空间校准 (Start)</button>  
-        </div>  
-  
-        <!-- 加载动画区 -->  
-        <div class="progress-section" id="progress-area">  
-            <h3 id="progress-text">Initializing AI Model...</h3>  
-            <div class="progress-bar-bg">  
-                <div class="progress-bar-fill" id="progress-fill"></div>  
-            </div>  
-            <p class="progress-status" id="progress-status">0%</p>  
-        </div>  
-    </main>  
-  
-    <!-- ================= 项目详情页 (结果页) ================= -->  
-    <main id="page-result" class="page">  
-        <div class="back-btn" onclick="navTo('home')">< 返回主页</div>  
-        <h2 style="margin-bottom: 2rem;" id="result-title">配准结果 (Calibration Result)</h2>  
-  
-        <!-- 三栏影像对比 -->  
-        <div class="result-grid">  
-            <div class="result-panel">  
-                <h3>Ancient Map (原始历史地图)</h3>  
-                <div class="image-preview" id="preview-ancient">  
-                    <div class="fake-red-dot" style="top: 40%; left: 30%;"></div>  
-                </div>  
-            </div>  
-            <div class="result-panel">  
-                <h3>Modern Map (原卫星图)</h3>  
-                <div class="image-preview" id="preview-modern"></div>  
-            </div>  
-            <div class="result-panel">  
-                <h3 style="color: var(--success);">Result (红点真实投影)</h3>  
-                <div class="image-preview" id="preview-result">  
-                    <!-- 校准后的红点位置 (模拟) -->  
-                    <div class="fake-red-dot" style="top: 65%; left: 75%;"></div>  
-                </div>  
-            </div>  
-        </div>  
-  
-        <!-- 技术参数 -->  
-        <h3 style="margin-bottom: 1rem;">技术指标 (Technical Details)</h3>  
-        <div class="stats-grid">  
-            <div class="stat-card">  
-                <p>Transformation Model</p>  
-                <div class="stat-value">TPS (非线性)</div>  
-            </div>  
-            <div class="stat-card">  
-                <p>Matched Keypoints</p>  
-                <div class="stat-value" id="stat-kp">142</div>  
-            </div>  
-            <div class="stat-card">  
-                <p>RMS Error</p>  
-                <div class="stat-value" id="stat-rmse">2.4m</div>  
-            </div>  
-            <div class="stat-card">  
-                <p>Confidence Score</p>  
-                <div class="stat-value" id="stat-conf">98.5%</div>  
-            </div>  
-        </div>  
-  
-        <!-- 操作按钮 -->  
-        <div class="action-bar">  
-            <button class="btn" onclick="downloadSimulation('Image')">⬇ Download Result Image (PNG)</button>  
-            <button class="btn btn-outline" onclick="downloadSimulation('Coordinates')">⬇ Download Coordinates (JSON)</button>  
-        </div>  
-    </main>  
-  
-    <!-- ================= 历史记录页 ================= -->  
-    <main id="page-history" class="page">  
-        <div class="back-btn" onclick="navTo('home')">< 返回主页</div>  
-        <h2 style="margin-bottom: 2rem;">项目历史记录 (History)</h2>  
-  
-        <div class="history-grid">  
-            <!-- 卡片1 -->  
-            <div class="history-card">  
-                <div class="history-thumb" style="background: linear-gradient(45deg, #4b3e2b, #2c3e50);"></div>  
-                <div class="history-info">  
-                    <span>重庆市中心城区配准</span>  
-                    <span>2025-10-24</span>  
-                </div>  
-                <p style="color: var(--text-sub); font-size: 0.8rem; margin-top: 5px;">RMS Error: 1.8m</p>  
-                <div class="history-actions">  
-                    <button class="btn btn-outline" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;" onclick="showCase('重庆市中心城区配准', '8.8m', '90%')">查看详情</button>  
-                    <div>  
-                        <button class="btn-icon" style="color: var(--red-dot);">♥</button>  
-                        <button class="btn-icon" onclick="alert('项目已删除')">🗑</button>  
-                    </div>  
-                </div>  
-            </div>  
-            <!-- 卡片2 -->  
-            <div class="history-card">  
-                <div class="history-thumb" style="background: linear-gradient(45deg, #3e4b2b, #2c3e50);"></div>  
-                <div class="history-info">  
-                    <span>广州市中心城区配准</span>  
-                    <span>2025-10-20</span>  
-                </div>  
-                <p style="color: var(--text-sub); font-size: 0.8rem; margin-top: 5px;">RMS Error: 3.2m</p>  
-                <div class="history-actions">  
-                    <button class="btn btn-outline" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;" onclick="showCase('广州市中心城区配准', '3.2m', '95%')">查看详情</button>  
-                    <div>  
-                        <button class="btn-icon">♡</button>  
-                        <button class="btn-icon" onclick="alert('项目已删除')">🗑</button>  
-                    </div>  
-                </div>  
-            </div>  
-            <!-- 卡片3 -->  
-            <div class="history-card">  
-                <div class="history-thumb" style="background: linear-gradient(45deg, #2b3e4b, #2c3e50);"></div>  
-                <div class="history-info">  
-                    <span>上海市中心城区配准</span>  
-                    <span>2025-10-15</span>  
-                </div>  
-                <p style="color: var(--text-sub); font-size: 0.8rem; margin-top: 5px;">RMS Error: 2.7m</p>  
-                <div class="history-actions">  
-                    <button class="btn btn-outline" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;" onclick="showCase('上海市中心城区配准', '2.7m', '97%')">查看详情</button>  
-                    <div>  
-                        <button class="btn-icon">♡</button>  
-                        <button class="btn-icon" onclick="alert('项目已删除')">🗑</button>  
-                    </div>  
-                </div>  
-            </div>  
-        </div>  
-    </main>  
-  
-    <!-- ================= JavaScript 逻辑 ================= -->  
-    <script>  
-        // 全局状态管理  
-        let uploadedImages = {  
-            ancient: null,  
-            modern: null  
-        };  
-  
-        // 页面路由切换  
-        function navTo(pageId) {  
-            document.querySelectorAll('.page').forEach(page => {  
-                page.classList.remove('active');  
-            });  
-            document.getElementById('page-' + pageId).classList.add('active');  
-            window.scrollTo(0, 0);  
-  
-            // 离开上传页时重置状态  
-            if(pageId === 'home') {  
-                resetUpload();  
+            for(let i = 0; i < particleCount; i++) {  
+                let particle = document.createElement('div');  
+                particle.className = 'particle';  
+                  
+                let size = Math.random() * 3 + 1;   
+                particle.style.width = size + 'px';  
+                particle.style.height = size + 'px';  
+                particle.style.left = Math.random() * 100 + 'vw';  
+                particle.style.top = (Math.random() * 50 + 50) + 'vh';   
+                  
+                let duration = Math.random() * 3 + 2;   
+                particle.style.animationDuration = duration + 's';  
+                particle.style.animationDelay = Math.random() * 5 + 's';  
+                  
+                container.appendChild(particle);  
             }  
         }  
+        window.onload = initParticles;  
   
-        // 处理文件上传预览 (本地FileReader，无需后端)  
-        function handleUpload(input, type) {  
-            if (input.files && input.files[0]) {  
-                const reader = new FileReader();  
-                reader.onload = function(e) {  
-                    const dataUrl = e.target.result;  
-                    uploadedImages[type] = dataUrl;  
-                      
-                    const box = document.getElementById('box-' + type);  
-                    box.style.backgroundImage = `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url(${dataUrl})`;  
-                    box.classList.add('has-file');  
   
-                    checkReady();  
-                }  
-                reader.readAsDataURL(input.files[0]);  
-            }  
+        let uploadedImages = { ancient: null, modern: null };    
+    
+        function navTo(pageId) {    
+            document.querySelectorAll('.page').forEach(page => {    
+                page.classList.remove('active');    
+            });    
+            document.getElementById('page-' + pageId).classList.add('active');    
+            window.scrollTo(0, 0);    
+    
+            if(pageId === 'home') resetUpload();    
+        }    
+    
+        function handleUpload(input, type) {    
+            if (input.files && input.files[0]) {    
+                const reader = new FileReader();    
+                reader.onload = function(e) {    
+                    const dataUrl = e.target.result;    
+                    uploadedImages[type] = dataUrl;    
+                        
+                    const box = document.getElementById('box-' + type);    
+                    box.style.backgroundImage = `url(${dataUrl})`;    
+                    box.classList.add('has-file');    
+    
+                    checkReady();    
+                }    
+                reader.readAsDataURL(input.files[0]);    
+            }    
+        }    
+    
+        function checkReady() {    
+            const btn = document.getElementById('btn-start');    
+            if (uploadedImages.ancient && uploadedImages.modern) {    
+                btn.disabled = false;    
+                btn.innerText = "开始空间校准 (Start)";    
+            } else {    
+                btn.disabled = true;    
+            }    
+        }    
+    
+        function startCalibration() {    
+            document.getElementById('btn-start').style.display = 'none';    
+            const progressArea = document.getElementById('progress-area');    
+            const progressFill = document.getElementById('progress-fill');    
+            const progressText = document.getElementById('progress-text');    
+            const progressStatus = document.getElementById('progress-status');    
+                
+            progressArea.style.display = 'block';    
+    
+            const stages = [    
+                { percent: 15, text: "Extracting red point coordinates..." },    
+                { percent: 45, text: "Matching map features (SIFT/ORB)..." },    
+                { percent: 75, text: "Calculating TPS spatial transformation..." },    
+                { percent: 100, text: "Reprojecting marked point to modern map..." }    
+            ];    
+    
+            let currentStage = 0;    
+                
+            function nextStage() {    
+                if (currentStage >= stages.length) {    
+                    setTimeout(showUploadResult, 500);   
+                    return;    
+                }    
+                    
+                const stage = stages[currentStage];    
+                progressFill.style.width = stage.percent + '%';    
+                progressText.innerText = stage.text;    
+                progressStatus.innerText = stage.percent + '%';    
+                    
+                currentStage++;    
+                setTimeout(nextStage, Math.random() * 700 + 800);     
+            }    
+    
+            nextStage();    
+        }    
+  
+        // ======== 更换为控制 img 标签的 src ========  
+        function showUploadResult() {  
+            document.getElementById('img-ancient').src = uploadedImages.ancient;    
+            document.getElementById('img-modern').src = uploadedImages.modern;    
+            document.getElementById('img-result').src = uploadedImages.modern;   
+  
+            // 上传的图随机赋予居中的假红点  
+            document.getElementById('dot-ancient').style.left = '50%';  
+            document.getElementById('dot-ancient').style.top = '50%';  
+            document.getElementById('dot-result').style.left = '50%';  
+            document.getElementById('dot-result').style.top = '50%';  
+            document.getElementById('dot-ancient').style.display = 'block';  
+            document.getElementById('dot-result').style.display = 'block';  
+                
+            document.getElementById('result-title').innerText = "配准结果 (Calibration Result)";    
+            document.getElementById('stat-kp').innerText = Math.floor(Math.random() * 100 + 50);    
+            document.getElementById('stat-rmse').innerText = (Math.random() * 3 + 1).toFixed(2) + 'm';    
+            document.getElementById('stat-conf').innerText = (Math.random() * 5 + 94).toFixed(1) + '%';    
+            navTo('result');   
         }  
+    
+        function showCase(title, rmse, conf, imgAncient, imgModern, imgResult, dotAncient, dotResult) {    
+            // 填充对应真实的 img 图片  
+            document.getElementById('img-ancient').src = imgAncient;    
+            document.getElementById('img-modern').src = imgModern;    
+            document.getElementById('img-result').src = imgResult;    
+                
+            document.getElementById('result-title').innerText = "案例展示: " + title;    
+            document.getElementById('stat-kp').innerText = "216";    
+            document.getElementById('stat-rmse').innerText = rmse;    
+            document.getElementById('stat-conf').innerText = conf;    
   
-        // 检查两张图是否都已上传  
-        function checkReady() {  
-            const btn = document.getElementById('btn-start');  
-            if (uploadedImages.ancient && uploadedImages.modern) {  
-                btn.disabled = false;  
-                btn.innerText = "开始空间校准 (Start)";  
+            // 定位跳动红点  
+            const dot1 = document.getElementById('dot-ancient');  
+            const dot2 = document.getElementById('dot-result');  
+              
+            if(dotAncient && dotResult) {  
+                dot1.style.display = 'block';  
+                dot2.style.display = 'block';  
+                dot1.style.left = dotAncient.x + '%';  
+                dot1.style.top = dotAncient.y + '%';  
+                dot2.style.left = dotResult.x + '%';  
+                dot2.style.top = dotResult.y + '%';  
             } else {  
-                btn.disabled = true;  
+                dot1.style.display = 'none';  
+                dot2.style.display = 'none';  
             }  
-        }  
-  
-        // 模拟校准运算进度条  
-        function startCalibration() {  
-            document.getElementById('btn-start').style.display = 'none';  
-            const progressArea = document.getElementById('progress-area');  
-            const progressFill = document.getElementById('progress-fill');  
-            const progressText = document.getElementById('progress-text');  
-            const progressStatus = document.getElementById('progress-status');  
-              
-            progressArea.style.display = 'block';  
-  
-            const stages = [  
-                { percent: 15, text: "Extracting red point coordinates..." },  
-                { percent: 45, text: "Matching map features (SIFT/ORB)..." },  
-                { percent: 75, text: "Calculating TPS spatial transformation..." },  
-                { percent: 100, text: "Reprojecting marked point to modern map..." }  
-            ];  
-  
-            let currentStage = 0;  
-              
-            function nextStage() {  
-                if (currentStage >= stages.length) {  
-                    setTimeout(showResult, 500); // 完成后跳转  
-                    return;  
-                }  
-                  
-                const stage = stages[currentStage];  
-                progressFill.style.width = stage.percent + '%';  
-                progressText.innerText = stage.text;  
-                progressStatus.innerText = stage.percent + '%';  
-                  
-                currentStage++;  
-                // 模拟处理时间 800ms - 1500ms 不等  
-                setTimeout(nextStage, Math.random() * 700 + 800);   
-            }  
-  
-            nextStage();  
-        }  
-  
-        // 渲染结果页并跳转  
-        function showResult() {  
-            // 将上传的图片映射到结果页  
-            document.getElementById('preview-ancient').style.backgroundImage = `url(${uploadedImages.ancient})`;  
-            document.getElementById('preview-modern').style.backgroundImage = `url(${uploadedImages.modern})`;  
-            document.getElementById('preview-result').style.backgroundImage = `url(${uploadedImages.modern})`; // 结果底图是现代图  
-              
-            document.getElementById('result-title').innerText = "配准结果 (Calibration Result)";  
-              
-            // 随机生成一些逼真的数据  
-            document.getElementById('stat-kp').innerText = Math.floor(Math.random() * 100 + 50);  
-            document.getElementById('stat-rmse').innerText = (Math.random() * 3 + 1).toFixed(2) + 'm';  
-            document.getElementById('stat-conf').innerText = (Math.random() * 5 + 94).toFixed(1) + '%';  
-  
-            navTo('result');  
-        }  
-  
-        // 案例查看功能 (复用Result页面进行展示)  
-        function showCase(title, rmse, conf) {  
-            // 使用一些占位的背景色模拟项目图片  
-            document.getElementById('preview-ancient').style.backgroundImage = `linear-gradient(45deg, #4b3e2b, #2c3e50)`;  
-            document.getElementById('preview-modern').style.backgroundImage = `linear-gradient(45deg, #2c3e50, #1e293b)`;  
-            document.getElementById('preview-result').style.backgroundImage = `linear-gradient(45deg, #2c3e50, #1e293b)`;  
-              
-            document.getElementById('result-title').innerText = "案例展示: " + title;  
-            document.getElementById('stat-kp').innerText = "216";  
-            document.getElementById('stat-rmse').innerText = rmse;  
-            document.getElementById('stat-conf').innerText = conf;  
-  
-            navTo('result');  
-        }  
-  
-        // 模拟下载功能  
-        function downloadSimulation(type) {  
-            alert(`【模拟】已触发 ${type} 下载。\n\n实际产品中：\n1. PNG 会下载带有坐标注记的卫星图。\n2. JSON 会下载转换后的 WGS84 经纬度坐标。`);  
-        }  
-  
-        // 重置上传页状态  
-        function resetUpload() {  
-            uploadedImages = { ancient: null, modern: null };  
-            ['ancient', 'modern'].forEach(type => {  
-                const box = document.getElementById('box-' + type);  
-                box.style.backgroundImage = 'none';  
-                box.classList.remove('has-file');  
-                box.querySelector('input').value = '';  
-            });  
-              
-            document.getElementById('btn-start').style.display = 'inline-block';  
-            document.getElementById('btn-start').disabled = true;  
-            document.getElementById('progress-area').style.display = 'none';  
-            document.getElementById('progress-fill').style.width = '0%';  
-        }  
-  
-    </script>  
-</body>  
+    
+            navTo('result');    
+        }    
+    
+        function downloadSimulation(type) {    
+            alert(`【模拟】已触发 ${type} 下载。\n\n实际产品中：\n1. PNG 会下载带有坐标注记的卫星图。\n2. JSON 会下载转换后的 WGS84 经纬度坐标。`);    
+        }    
+    
+        function resetUpload() {    
+            uploadedImages = { ancient: null, modern: null };    
+            ['ancient', 'modern'].forEach(type => {    
+                const box = document.getElementById('box-' + type);    
+                box.style.backgroundImage = 'none';    
+                box.classList.remove('has-file');    
+                box.querySelector('input').value = '';    
+            });    
+                
+            document.getElementById('btn-start').style.display = 'inline-block';    
+            document.getElementById('btn-start').disabled = true;    
+            document.getElementById('progress-area').style.display = 'none';    
+            document.getElementById('progress-fill').style.width = '0%';    
+        }    
+    
+    </script>    
+</body>    
 </html>  
